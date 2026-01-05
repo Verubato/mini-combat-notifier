@@ -1,0 +1,10 @@
+## Interface: 120001, 120000, 110207, 50503, 40402, 38000, 30405, 30300, 20505, 11508
+## Title: MiniCombatNotifier
+## Notes: Notifies you when entering and leaving combat.
+## Author: Verz
+## Version: 1.0.0
+## SavedVariables: MiniCombatNotifierDB
+## IconTexture: Interface\AddOns\MiniCombatNotifier\icon.blp
+## X-Curse-Project-ID: 1421099
+
+MiniCombatNotifier.lua
