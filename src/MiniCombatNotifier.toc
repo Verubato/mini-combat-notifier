@@ -4,7 +4,7 @@
 ## Author: Verz
 ## Version: 1.0.0
 ## SavedVariables: MiniCombatNotifierDB
-## IconTexture: Interface\AddOns\MiniCombatNotifier\icon.blp
+## IconTexture: Interface\AddOns\MiniCombatNotifier\Icon.blp
 ## X-Curse-Project-ID: 1421099
 
 MiniCombatNotifier.lua
