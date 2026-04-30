@@ -1,11 +1,12 @@
-local addonName = ...
-local frame
-local textFrame
+local addonName, addon = ...
+local container  -- Frame parent for textFrame (enables dragging)
+local textFrame  -- FontString
 local animation
+
 ---@type Db
 local db
 ---@class Db
-local dbDefaults = {
+addon.DbDefaults = {
 	Point = "CENTER",
 	RelativeTo = "UIParent",
 	RelativePoint = "CENTER",
@@ -19,93 +20,61 @@ local dbDefaults = {
 	EnteringCombatText = "<Entering Combat>",
 	LeavingCombatText = "<Leaving Combat>",
 
-	-- light red
-	EnteringCombatTextColor = {
-		R = 1,
-		G = 0.1,
-		B = 0.1,
-		A = 1,
-	},
+	EnteringCombatTextColor = { R = 1,   G = 0.1, B = 0.1, A = 1 },
+	LeavingCombatTextColor  = { R = 0,   G = 1,   B = 0,   A = 1 },
 
-	-- green
-	LeavingCombatTextColor = {
-		R = 0,
-		G = 1,
-		B = 0,
-		A = 1,
-	},
-
-	FadeInDuration = 0.5,
-	HoldDuration = 0.5,
+	FadeInDuration  = 0.5,
+	HoldDuration    = 0.5,
 	FadeOutDuration = 0.5,
 }
 
-local function CopyTable(src, dst)
-	if type(dst) ~= "table" then
-		dst = {}
-	end
+local function ApplyFont()
+	textFrame:SetFont(db.FontPath, db.FontSize, db.FontFlags)
+end
 
-	for k, v in pairs(src) do
-		if type(v) == "table" then
-			dst[k] = CopyTable(v, dst[k])
-		elseif dst[k] == nil then
-			dst[k] = v
-		end
-	end
-
-	return dst
+local function ApplyPosition()
+	local relativeTo = db.RelativeTo and _G[db.RelativeTo] or UIParent
+	container:ClearAllPoints()
+	container:SetPoint(db.Point, relativeTo, db.RelativePoint, db.X, db.Y)
 end
 
 local function OnCombatEvent(_, event)
-	local text
-	local color
+	if animation:IsPlaying() then animation:Stop() end
 
+	local text, color
 	if event == "PLAYER_REGEN_DISABLED" then
-		text = db.EnteringCombatText or dbDefaults.EnteringCombatText
-		color = db.EnteringCombatTextColor or dbDefaults.EnteringCombatTextColor
+		text  = db.EnteringCombatText
+		color = db.EnteringCombatTextColor
 	elseif event == "PLAYER_REGEN_ENABLED" then
-		text = db.LeavingCombatText or dbDefaults.LeavingCombatText
-		color = db.LeavingCombatTextColor or dbDefaults.LeavingCombatTextColor
+		text  = db.LeavingCombatText
+		color = db.LeavingCombatTextColor
 	else
 		return
 	end
 
-	textFrame:SetTextColor(color.R or 1, color.G or 1, color.B or 1, color.A or 1)
+	textFrame:SetTextColor(color.R, color.G, color.B, color.A)
 	textFrame:SetAlpha(0)
 	textFrame:SetText(text)
 	textFrame:Show()
-
-	if animation:IsPlaying() then
-		animation:Stop()
-	end
-
 	animation:Play()
 end
 
 local function Init()
-	MiniCombatNotifierDB = MiniCombatNotifierDB or {}
-	db = CopyTable(dbDefaults, MiniCombatNotifierDB)
+	db = addon.Framework:GetSavedVars(addon.DbDefaults)
+	addon.Db = db
 
-	local combatFrame = CreateFrame("Frame")
-	combatFrame:HookScript("OnEvent", OnCombatEvent)
-	combatFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-	combatFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
-
-	textFrame = UIParent:CreateFontString(nil, "ARTWORK")
-	textFrame:SetFont(
-		db.FontPath or dbDefaults.FontPath,
-		db.FontSize or dbDefaults.FontSize,
-		db.FontFlags or dbDefaults.FontFlags
-	)
+	container = CreateFrame("Frame", "MiniCombatNotifierContainer", UIParent)
+	container:SetSize(500, 60)
+	container:SetFrameStrata("MEDIUM")
 
 	local relativeTo = db.RelativeTo and _G[db.RelativeTo] or UIParent
-	textFrame:SetPoint(
-		db.Point or dbDefaults.Point,
-		relativeTo,
-		db.RelativePoint or dbDefaults.RelativePoint,
-		db.X or dbDefaults.X,
-		db.Y or dbDefaults.Y
-	)
+	container:SetPoint(db.Point, relativeTo, db.RelativePoint, db.X, db.Y)
+
+	textFrame = container:CreateFontString(nil, "ARTWORK")
+	textFrame:SetAllPoints(container)
+	textFrame:SetJustifyH("CENTER")
+	textFrame:SetJustifyV("MIDDLE")
+	ApplyFont()
 	textFrame:SetAlpha(0)
 	textFrame:Hide()
 
@@ -113,20 +82,20 @@ local function Init()
 
 	local fadeIn = animation:CreateAnimation("Alpha")
 	fadeIn:SetOrder(1)
-	fadeIn:SetDuration(db.FadeInDuration or dbDefaults.FadeInDuration)
+	fadeIn:SetDuration(db.FadeInDuration)
 	fadeIn:SetFromAlpha(0)
 	fadeIn:SetToAlpha(1)
 	fadeIn:SetSmoothing("IN_OUT")
 
 	local hold = animation:CreateAnimation("Alpha")
 	hold:SetOrder(2)
-	hold:SetDuration(db.HoldDuration or dbDefaults.HoldDuration)
+	hold:SetDuration(db.HoldDuration)
 	hold:SetFromAlpha(1)
 	hold:SetToAlpha(1)
 
 	local fadeOut = animation:CreateAnimation("Alpha")
 	fadeOut:SetOrder(3)
-	fadeOut:SetDuration(db.FadeOutDuration or dbDefaults.FadeOutDuration)
+	fadeOut:SetDuration(db.FadeOutDuration)
 	fadeOut:SetFromAlpha(1)
 	fadeOut:SetToAlpha(0)
 	fadeOut:SetSmoothing("IN_OUT")
@@ -136,20 +105,48 @@ local function Init()
 	end)
 end
 
-local function OnAddonLoaded(_, _, name)
-	if name ~= addonName then
-		return
+-- called by Config.lua after settings change
+function addon.RefreshDisplay()
+	ApplyFont()
+	ApplyPosition()
+end
+
+function addon.SetTestMode(enabled)
+	if enabled then
+		if animation:IsPlaying() then animation:Stop() end
+		textFrame:Show()
+		textFrame:SetAlpha(1)
+		textFrame:SetText(db.EnteringCombatText)
+		local c = db.EnteringCombatTextColor
+		textFrame:SetTextColor(c.R, c.G, c.B, c.A)
+
+		container:SetMovable(true)
+		container:EnableMouse(true)
+		container:RegisterForDrag("LeftButton")
+		container:SetScript("OnDragStart", container.StartMoving)
+		container:SetScript("OnDragStop", function(self)
+			self:StopMovingOrSizing()
+			local point, _, relativePoint, x, y = self:GetPoint()
+			db.Point = point
+			db.RelativePoint = relativePoint
+			db.X = math.floor(x + 0.5)
+			db.Y = math.floor(y + 0.5)
+		end)
+	else
+		container:EnableMouse(false)
+		container:SetScript("OnDragStart", nil)
+		container:SetScript("OnDragStop", nil)
+		textFrame:SetAlpha(0)
+		textFrame:Hide()
+		ApplyPosition()
 	end
+end
 
+addon.Framework:WaitForAddonLoad(function()
 	Init()
-
-	frame:UnregisterEvent("ADDON_LOADED")
-
+	addon.InitConfig()
+	local frame = CreateFrame("Frame")
 	frame:SetScript("OnEvent", OnCombatEvent)
 	frame:RegisterEvent("PLAYER_REGEN_DISABLED")
 	frame:RegisterEvent("PLAYER_REGEN_ENABLED")
-end
-
-frame = CreateFrame("Frame")
-frame:RegisterEvent("ADDON_LOADED")
-frame:SetScript("OnEvent", OnAddonLoaded)
+end)
