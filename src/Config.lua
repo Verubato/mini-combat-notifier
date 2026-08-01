@@ -42,7 +42,6 @@ local function BuildPanel(panel)
 		Parent = panel,
 		Description = "Notifies you when entering and leaving combat.",
 		Width = panelW,
-		Y = y,
 	})
 	Row(52)
 
