@@ -1,4 +1,4 @@
-local addonName, addon = ...
+local _, addon = ...
 local container  -- Frame parent for textFrame (enables dragging)
 local textFrame  -- FontString
 local animation
@@ -33,9 +33,7 @@ local function ApplyFont()
 end
 
 local function ApplyPosition()
-	local relativeTo = db.RelativeTo and _G[db.RelativeTo] or UIParent
-	container:ClearAllPoints()
-	container:SetPoint(db.Point, relativeTo, db.RelativePoint, db.X, db.Y)
+	addon.Framework:ApplyPosition(container, db, addon.DbDefaults)
 end
 
 local function OnCombatEvent(_, event)
@@ -67,8 +65,7 @@ local function Init()
 	container:SetSize(500, 60)
 	container:SetFrameStrata("MEDIUM")
 
-	local relativeTo = db.RelativeTo and _G[db.RelativeTo] or UIParent
-	container:SetPoint(db.Point, relativeTo, db.RelativePoint, db.X, db.Y)
+	ApplyPosition()
 
 	textFrame = container:CreateFontString(nil, "ARTWORK")
 	textFrame:SetAllPoints(container)
@@ -120,18 +117,9 @@ function addon.SetTestMode(enabled)
 		local c = db.EnteringCombatTextColor
 		textFrame:SetTextColor(c.R, c.G, c.B, c.A)
 
-		container:SetMovable(true)
-		container:EnableMouse(true)
-		container:RegisterForDrag("LeftButton")
-		container:SetScript("OnDragStart", container.StartMoving)
-		container:SetScript("OnDragStop", function(self)
-			self:StopMovingOrSizing()
-			local point, _, relativePoint, x, y = self:GetPoint()
-			db.Point = point
-			db.RelativePoint = relativePoint
-			db.X = math.floor(x + 0.5)
-			db.Y = math.floor(y + 0.5)
-		end)
+		-- the container is a wide, mostly empty banner, so clamping would stop the text
+		-- itself from ever reaching the edge of the screen
+		addon.Framework:MakeMovable(container, db, { Clamped = false })
 	else
 		container:EnableMouse(false)
 		container:SetScript("OnDragStart", nil)

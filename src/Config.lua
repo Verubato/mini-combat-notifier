@@ -16,107 +16,6 @@ StaticPopupDialogs["MINICOMBATNOTIFIER_CONFIRM_RESET"] = {
 	hideOnEscape = true,
 }
 
--- Color picker
-
-local function OpenColorPicker(r, g, b, a, onUpdate, onCancel)
-	if ColorPickerFrame.SetupColorPickerAndShow then
-		local prev = { r = r, g = g, b = b, a = a }
-		ColorPickerFrame:SetupColorPickerAndShow({
-			r = r, g = g, b = b,
-			opacity = 1 - a,
-			hasOpacity = true,
-			swatchFunc = function()
-				local r2, g2, b2 = ColorPickerFrame:GetColorRGB()
-				local a2 = 1 - ColorPickerFrame:GetColorAlpha()
-				onUpdate(r2, g2, b2, a2)
-			end,
-			opacityFunc = function()
-				local r2, g2, b2 = ColorPickerFrame:GetColorRGB()
-				local a2 = 1 - ColorPickerFrame:GetColorAlpha()
-				onUpdate(r2, g2, b2, a2)
-			end,
-			cancelFunc = function()
-				if onCancel then onCancel(prev.r, prev.g, prev.b, prev.a) end
-			end,
-		})
-	else
-		-- Classic API
-		local prevR, prevG, prevB, prevA = r, g, b, a
-		ColorPickerFrame.func = function()
-			local r2, g2, b2 = ColorPickerFrame:GetColorRGB()
-			onUpdate(r2, g2, b2, prevA)
-		end
-		ColorPickerFrame.hasOpacity = true
-		ColorPickerFrame.opacity = 1 - a
-		ColorPickerFrame.opacityFunc = function()
-			onUpdate(prevR, prevG, prevB, 1 - ColorPickerFrame.opacity)
-		end
-		ColorPickerFrame.cancelFunc = function()
-			if onCancel then onCancel(prevR, prevG, prevB, prevA) end
-		end
-		ColorPickerFrame:SetColorRGB(r, g, b)
-		ShowUIPanel(ColorPickerFrame)
-	end
-end
-
--- Color swatch button
-
-local function CreateColorSwatch(parent, getColor, setColor, onChange)
-	local btn = CreateFrame("Button", nil, parent)
-	btn:SetSize(24, 24)
-
-	local bg = btn:CreateTexture(nil, "BACKGROUND")
-	bg:SetPoint("TOPLEFT", 1, -1)
-	bg:SetPoint("BOTTOMRIGHT", -1, 1)
-
-	-- thin border using 4 textures
-	local function MakeBorder(a1, o1x, o1y, a2, o2x, o2y, w, h)
-		local t = btn:CreateTexture(nil, "BORDER")
-		t:SetColorTexture(0.4, 0.4, 0.4, 1)
-		t:SetPoint(a1, btn, a1, o1x, o1y)
-		t:SetPoint(a2, btn, a2, o2x, o2y)
-		if w then t:SetWidth(w) end
-		if h then t:SetHeight(h) end
-		return t
-	end
-	MakeBorder("TOPLEFT",     0,  0, "TOPRIGHT",    0,  0, nil, 1)
-	MakeBorder("BOTTOMLEFT",  0,  0, "BOTTOMRIGHT", 0,  0, nil, 1)
-	MakeBorder("TOPLEFT",     0,  0, "BOTTOMLEFT",  0,  0, 1, nil)
-	MakeBorder("TOPRIGHT",    0,  0, "BOTTOMRIGHT", 0,  0, 1, nil)
-
-	local function Refresh()
-		local c = getColor()
-		bg:SetColorTexture(c.R, c.G, c.B, 1)
-	end
-
-	btn:SetScript("OnClick", function()
-		local c = getColor()
-		OpenColorPicker(c.R, c.G, c.B, c.A,
-			function(r, g, b, a)
-				setColor(r, g, b, a)
-				Refresh()
-				if onChange then onChange() end
-			end,
-			function(r, g, b, a)
-				setColor(r, g, b, a)
-				Refresh()
-				if onChange then onChange() end
-			end
-		)
-	end)
-
-	btn:SetScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:SetText("Click to change color", 1, 1, 1, true)
-		GameTooltip:Show()
-	end)
-	btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-	Refresh()
-	btn.MiniRefresh = Refresh
-	return btn
-end
-
 -- Build panel
 
 local function BuildPanel(panel)
@@ -140,15 +39,13 @@ local function BuildPanel(panel)
 
 	-- Title and description
 
-	local version = C_AddOns and C_AddOns.GetAddOnMetadata(addonName, "Version") or GetAddOnMetadata and GetAddOnMetadata(addonName, "Version")
-
-	local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-	title:SetPoint("TOPLEFT", panel, "TOPLEFT", xPad, y)
-	title:SetText(string.format("%s - %s", addonName, version or ""))
-
-	local subtitle = panel:CreateFontString(nil, "ARTWORK", "GameFontWhite")
-	subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
-	subtitle:SetText("Notifies you when entering and leaving combat.")
+	mini:PanelHeader({
+		Parent = panel,
+		Description = "Notifies you when entering and leaving combat.",
+		Width = panelW,
+		X = xPad,
+		Y = y,
+	})
 	Row(52)
 
 	-- Notification Text
@@ -186,18 +83,38 @@ local function BuildPanel(panel)
 	divColor:SetWidth(panelW)
 	Row(40)
 
-	local enterSwatch = CreateColorSwatch(panel,
-		function() return db.EnteringCombatTextColor end,
-		function(r, g, b, a) local c = db.EnteringCombatTextColor; c.R, c.G, c.B, c.A = r, g, b, a end
-	)
+	-- The stored A is alpha (1 = opaque) - it is handed straight to SetTextColor - so it maps
+	-- onto the framework's alpha convention without conversion.
+	local enterSwatch = mini:ColorSwatch({
+		Parent = panel,
+		Size = 24,
+		Tooltip = "Click to change color",
+		GetValue = function()
+			local c = db.EnteringCombatTextColor
+			return c.R, c.G, c.B, c.A
+		end,
+		SetValue = function(r, g, b, a)
+			local c = db.EnteringCombatTextColor
+			c.R, c.G, c.B, c.A = r, g, b, a
+		end,
+	})
 	local enterColorLbl = Label("Entering Combat:")
 	enterColorLbl:SetPoint("TOPLEFT", panel, "TOPLEFT", xPad, y)
 	enterSwatch:SetPoint("LEFT", enterColorLbl, "RIGHT", 8, 0)
 
-	local leaveSwatch = CreateColorSwatch(panel,
-		function() return db.LeavingCombatTextColor end,
-		function(r, g, b, a) local c = db.LeavingCombatTextColor; c.R, c.G, c.B, c.A = r, g, b, a end
-	)
+	local leaveSwatch = mini:ColorSwatch({
+		Parent = panel,
+		Size = 24,
+		Tooltip = "Click to change color",
+		GetValue = function()
+			local c = db.LeavingCombatTextColor
+			return c.R, c.G, c.B, c.A
+		end,
+		SetValue = function(r, g, b, a)
+			local c = db.LeavingCombatTextColor
+			c.R, c.G, c.B, c.A = r, g, b, a
+		end,
+	})
 	local leaveColorLbl = Label("Leaving Combat:")
 	leaveColorLbl:SetPoint("TOPLEFT", panel, "TOPLEFT", xMid, y)
 	leaveSwatch:SetPoint("LEFT", leaveColorLbl, "RIGHT", 8, 0)
@@ -344,11 +261,6 @@ local function BuildPanel(panel)
 			end,
 		})
 	end)
-
-	-- Register swatches for panel-wide refresh (dropdowns auto-register via AddControlForRefresh)
-	panel.MiniControls = panel.MiniControls or {}
-	panel.MiniControls[#panel.MiniControls + 1] = enterSwatch
-	panel.MiniControls[#panel.MiniControls + 1] = leaveSwatch
 
 	panel:HookScript("OnShow", function()
 		RefreshFontList()
