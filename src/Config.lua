@@ -24,9 +24,8 @@ local function BuildPanel(panel)
 
 	local vSpace = mini.VerticalSpacing
 	local hSpace = mini.HorizontalSpacing
-	local xPad   = hSpace
 	local xMid   = 316  -- x start for right-side control on shared rows
-	local panelW = select(1, mini:SettingsSize()) - xPad * 2
+	local panelW = select(1, mini:SettingsSize()) - hSpace
 	local y      = -vSpace
 
 	local function Row(amount) y = y - amount; return y end
@@ -43,7 +42,6 @@ local function BuildPanel(panel)
 		Parent = panel,
 		Description = "Notifies you when entering and leaving combat.",
 		Width = panelW,
-		X = xPad,
 		Y = y,
 	})
 	Row(52)
@@ -52,7 +50,7 @@ local function BuildPanel(panel)
 	-- Row: "Entering Combat:" [editbox]    "Leaving Combat:" [editbox]
 
 	local divText = mini:Divider({ Parent = panel, Text = "Notification Text" })
-	divText:SetPoint("TOPLEFT", panel, "TOPLEFT", xPad, y)
+	divText:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
 	divText:SetWidth(panelW)
 	Row(40)
 
@@ -62,7 +60,7 @@ local function BuildPanel(panel)
 		SetValue = function(v) db.EnteringCombatText = v end,
 	})
 	local enterLbl = Label("Entering Combat:")
-	enterLbl:SetPoint("TOPLEFT", panel, "TOPLEFT", xPad, y)
+	enterLbl:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
 	enterRes.EditBox:SetPoint("LEFT", enterLbl, "RIGHT", 8, 0)
 
 	local leaveRes = mini:EditBox({
@@ -79,7 +77,7 @@ local function BuildPanel(panel)
 	-- Row: "Entering Combat:" [swatch]    "Leaving Combat:" [swatch]
 
 	local divColor = mini:Divider({ Parent = panel, Text = "Colors" })
-	divColor:SetPoint("TOPLEFT", panel, "TOPLEFT", xPad, y)
+	divColor:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
 	divColor:SetWidth(panelW)
 	Row(40)
 
@@ -99,7 +97,7 @@ local function BuildPanel(panel)
 		end,
 	})
 	local enterColorLbl = Label("Entering Combat:")
-	enterColorLbl:SetPoint("TOPLEFT", panel, "TOPLEFT", xPad, y)
+	enterColorLbl:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
 	enterSwatch:SetPoint("LEFT", enterColorLbl, "RIGHT", 8, 0)
 
 	local leaveSwatch = mini:ColorSwatch({
@@ -125,7 +123,7 @@ local function BuildPanel(panel)
 	-- Row: [Font Size slider]
 
 	local divFont = mini:Divider({ Parent = panel, Text = "Font" })
-	divFont:SetPoint("TOPLEFT", panel, "TOPLEFT", xPad, y)
+	divFont:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
 	divFont:SetWidth(panelW)
 	Row(40)
 
@@ -170,7 +168,7 @@ local function BuildPanel(panel)
 	}
 
 	local fontLbl = Label("Font:")
-	fontLbl:SetPoint("TOPLEFT", panel, "TOPLEFT", xPad, y)
+	fontLbl:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
 	local flagLbl = Label("Style:")
 	flagLbl:SetPoint("TOPLEFT", panel, "TOPLEFT", xMid, y)
 	Row(22)
@@ -181,7 +179,7 @@ local function BuildPanel(panel)
 		SetValue = function(v) db.FontPath = v; addon.RefreshDisplay() end,
 		GetText  = function(v) return fontNames[v] or v end,
 	})
-	fontDD:SetPoint("TOPLEFT", panel, "TOPLEFT", xPad + (fontModern and 0 or -16), y)
+	fontDD:SetPoint("TOPLEFT", panel, "TOPLEFT", (fontModern and 0 or -16), y)
 
 	local flagDD, flagModern = mini:Dropdown({
 		Parent = panel, Items = flagValues, Width = 180,
@@ -199,7 +197,7 @@ local function BuildPanel(panel)
 		GetValue = function() return db.FontSize end,
 		SetValue = function(v) db.FontSize = mini:ClampInt(v, 8, 48, db.FontSize); addon.RefreshDisplay() end,
 	})
-	sizeRes.Slider:SetPoint("TOPLEFT", panel, "TOPLEFT", xPad, y)
+	sizeRes.Slider:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
 	Row(48)
 
 	-- Position
@@ -207,19 +205,19 @@ local function BuildPanel(panel)
 	-- Row: [Test Mode button]    X: [editbox]    Y: [editbox]
 
 	local divPos = mini:Divider({ Parent = panel, Text = "Position" })
-	divPos:SetPoint("TOPLEFT", panel, "TOPLEFT", xPad, y)
+	divPos:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
 	divPos:SetWidth(panelW)
 	Row(40)
 
 	local hint = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-	hint:SetPoint("TOPLEFT", panel, "TOPLEFT", xPad, y)
+	hint:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
 	hint:SetText("Enable test mode, then drag the text to reposition it.")
 	hint:SetTextColor(0.7, 0.7, 0.7, 1)
 	Row(28)
 
 	testModeBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
 	testModeBtn:SetSize(160, 24)
-	testModeBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", xPad, y)
+	testModeBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
 	testModeBtn:SetText("Enable Test Mode")
 	testModeBtn:SetScript("OnClick", function()
 		testModeActive = not testModeActive
@@ -249,7 +247,7 @@ local function BuildPanel(panel)
 	-- Reset to defaults button (top-right corner)
 	local resetBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
 	resetBtn:SetSize(120, 24)
-	resetBtn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -xPad, -vSpace)
+	resetBtn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -hSpace, -vSpace)
 	resetBtn:SetText("Reset to Defaults")
 	resetBtn:SetScript("OnClick", function()
 		StaticPopup_Show("MINICOMBATNOTIFIER_CONFIRM_RESET", "Reset all settings to default?", nil, {
