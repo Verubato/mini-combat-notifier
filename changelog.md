@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1
+
+- Updated interface versions for the latest Classic, TBC and Mists builds.
+- Fixed the colour picker label not showing.
+
 ## 1.2.0
 
 New MiniFramework added across all my mini addons.
