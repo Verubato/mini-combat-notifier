@@ -14,9 +14,9 @@ Feedback and feature requests are more than welcome!
 
 ## Screenshots
 
-![MiniCombatNotifier screenshot](https://raw.githubusercontent.com/Verubato/mini-combat-notifier/main/assets/LeavingCombat.png)
+![MiniCombatNotifier screenshot](https://raw.githubusercontent.com/Verubato/mini-combat-notifier/main/assets/Screenshots/LeavingCombat.png)
 
-![MiniCombatNotifier screenshot](https://raw.githubusercontent.com/Verubato/mini-combat-notifier/main/assets/EnteringCombat.png)
+![MiniCombatNotifier screenshot](https://raw.githubusercontent.com/Verubato/mini-combat-notifier/main/assets/Screenshots/EnteringCombat.png)
 
 ## Download
 
