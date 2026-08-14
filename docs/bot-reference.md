@@ -11,9 +11,9 @@ Blizzard's scrolling combat text and lose its combat notifications.
 
 | Item | Value |
 | --- | --- |
-| Version | 1.2.3 |
+| Version | 1.2.4 |
 | Author | Verz |
-| Interface versions (TOC) | 120100, 120007, 50504, 40402, 38002, 38000, 30405, 30300, 20506, 11509 |
+| Interface versions (TOC) | 120100, 50504, 40402, 38002, 38000, 30405, 30300, 20506, 11509 |
 | Saved variables | MiniCombatNotifierDB |
 | Slash commands | /mcn, /minicn, /minicombatnotifier (all open the settings panel) |
 | Options location | Game options -> AddOns -> MiniCombatNotifier |
