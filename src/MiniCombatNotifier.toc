@@ -3,7 +3,7 @@
 ## Notes: Notifies you when entering and leaving combat.
 ## Category: Mini
 ## Author: Verz
-## Version: 1.2.4
+## Version: 1.2.5
 ## SavedVariables: MiniCombatNotifierDB
 ## IconTexture: Interface\AddOns\MiniCombatNotifier\Icon.blp
 ## X-Curse-Project-ID: 1421099
