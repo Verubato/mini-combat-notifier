@@ -3,6 +3,87 @@ local addonName, addon = ...
 local testModeActive = false
 local testModeBg  -- background texture shown in test mode
 
+-- The dropdown holds these tables, so they are refilled in place rather than replaced.
+local fontValues = {}
+local fontNames = {}
+local fontsDropdown
+local fontsMediaSubscribed = false
+local fontsRefreshQueued = false
+
+---Refills the font lists in place from LibSharedMedia, falling back to the client's own faces
+---only when nothing has registered anything at all.
+local function RefillFontLists()
+	wipe(fontValues)
+	wipe(fontNames)
+
+	local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+	-- Fetch answers one override file for every name once an addon sets a global font.
+	local hash = LSM and LSM:HashTable("font")
+
+	if hash then
+		for _, name in ipairs(LSM:List("font")) do
+			local file = hash[name]
+
+			if file and not fontNames[file] then
+				fontValues[#fontValues + 1] = file
+				fontNames[file] = name
+			end
+		end
+	else
+		local fallback = {
+			{ "Fonts\\FRIZQT__.TTF", "Friz Quadrata" },
+			{ "Fonts\\ARIALN.TTF",   "Arial Narrow"  },
+			{ "Fonts\\MORPHEUS.TTF", "Morpheus"       },
+			{ "Fonts\\SKURRI.TTF",   "Skurri"         },
+			{ "Fonts\\2002.ttf",     "2002"           },
+		}
+
+		for _, entry in ipairs(fallback) do
+			fontValues[#fontValues + 1] = entry[1]
+			fontNames[entry[1]] = entry[2]
+		end
+	end
+end
+
+---Runs the list refresh once at the end of the frame however many times it is asked for in one,
+---since LibSharedMedia fires once per registered entry and a media pack registers its whole set
+---inside a single frame.
+local function QueueFontListsChanged()
+	if fontsRefreshQueued then
+		return
+	end
+
+	fontsRefreshQueued = true
+
+	C_Timer.After(0, function()
+		fontsRefreshQueued = false
+		RefillFontLists()
+
+		if fontsDropdown then
+			fontsDropdown:MiniRefresh()
+		end
+	end)
+end
+
+---FontPath stores a file, not a name, so a global override changes nothing a player has picked.
+local function EnsureFontMediaSubscription()
+	if fontsMediaSubscribed then
+		return
+	end
+
+	local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+
+	if not LSM or not LSM.RegisterCallback then
+		return
+	end
+
+	fontsMediaSubscribed = true
+
+	-- Fonts keep arriving for as long as media addons keep loading, which is routinely after
+	-- this panel was built.
+	LSM.RegisterCallback(addon, "LibSharedMedia_Registered", QueueFontListsChanged)
+end
+
 -- Build panel
 
 local function BuildPanel(panel)
@@ -121,37 +202,7 @@ local function BuildPanel(panel)
 	leaveSwatch:SetPoint("LEFT", leaveColorLbl, "RIGHT", 8, 0)
 	Row(44)
 
-	local fontValues = {}
-	local fontNames  = {}
-
-	local function RefreshFontList()
-		wipe(fontValues)
-		wipe(fontNames)
-		local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
-		if LSM then
-			for _, name in ipairs(LSM:List("font")) do
-				local file = LSM:Fetch("font", name)
-				if file then
-					fontValues[#fontValues + 1] = file
-					fontNames[file] = name
-				end
-			end
-		else
-			local fallback = {
-				{ "Fonts\\FRIZQT__.TTF", "Friz Quadrata" },
-				{ "Fonts\\ARIALN.TTF",   "Arial Narrow"  },
-				{ "Fonts\\MORPHEUS.TTF", "Morpheus"       },
-				{ "Fonts\\SKURRI.TTF",   "Skurri"         },
-				{ "Fonts\\2002.ttf",     "2002"           },
-			}
-			for _, entry in ipairs(fallback) do
-				fontValues[#fontValues + 1] = entry[1]
-				fontNames[entry[1]] = entry[2]
-			end
-		end
-	end
-
-	RefreshFontList()
+	RefillFontLists()
 	local flagValues = { "OUTLINE", "THICKOUTLINE", "MONOCHROME", "OUTLINE, MONOCHROME", "" }
 	local flagNames = {
 		["OUTLINE"]             = "Outline",
@@ -182,6 +233,10 @@ local function BuildPanel(panel)
 		GetText  = function(v) return flagNames[v] or v end,
 	})
 	flagDD:SetPoint("TOPLEFT", panel, "TOPLEFT", xMid + (flagModern and 0 or -16), y)
+
+	fontsDropdown = fontDD
+	EnsureFontMediaSubscription()
+
 	-- Slider value box floats 20 px above slider top; needs ~55 px clearance from dropdown bottom.
 	Row(74)
 
@@ -230,7 +285,7 @@ local function BuildPanel(panel)
 	posYRes.EditBox:SetPoint("LEFT", yLbl, "RIGHT", 6, 0)
 
 	panel:HookScript("OnShow", function()
-		RefreshFontList()
+		RefillFontLists()
 		if panel.MiniRefresh then panel:MiniRefresh() end
 		if testModeBg then testModeBg:SetShown(testModeActive) end
 	end)

@@ -43,6 +43,42 @@ local function FindButton(text)
 	return button
 end
 
+---The font dropdown is the first modern dropdown this panel builds, ahead of the font style
+---dropdown.
+---@return table?
+local function FindFontDropdown()
+	for _, frame in ipairs(WowMock.Frames) do
+		if frame.__menuGenerator then
+			return frame
+		end
+	end
+end
+
+---A modern dropdown only exposes its choices through the generator it handed to SetupMenu, so a
+---test replays that generator against a description that keeps the callbacks.
+---@param dd table
+---@return table<string, fun()>
+local function MenuChoices(dd)
+	local choices = {}
+	local description = {}
+
+	setmetatable(description, {
+		__index = function()
+			return function() end
+		end,
+	})
+
+	description.CreateRadio = function(_, text, _, setSelected)
+		choices[text] = setSelected
+
+		return nil
+	end
+
+	dd.__menuGenerator(dd, description)
+
+	return choices
+end
+
 ---@return boolean
 local function TestButtonSitsLeftOfReset()
 	local test = FindButton("Test")
@@ -122,5 +158,62 @@ smoke.Run("MiniCombatNotifier", {
 
 		context.Addon.Db.EnteringCombatText = "changed"
 		fw.truthy(ResetButtonAppliesDefaults(context.Addon.Db), "the framework's reset button restores defaults")
+
+		local fontDD = FindFontDropdown()
+		fw.not_nil(fontDD, "the font dropdown exists")
+
+		local lsm = LibStub and LibStub("LibSharedMedia-3.0", true)
+		fw.not_nil(lsm, "LibSharedMedia resolves under the mock")
+
+		local newFontName = "MiniCombatNotifier Test Face"
+		lsm:Register("font", newFontName, "Fonts\\MiniCombatNotifierTestFace.ttf")
+
+		fw.no_key(MenuChoices(fontDD), newFontName, "the registration alone doesn't rebuild the list yet")
+
+		WowMock.RunTimers()
+
+		fw.has_key(MenuChoices(fontDD), newFontName, "the font appears once the coalesced refresh runs")
+
+		local secondFontName = "MiniCombatNotifier Second Test Face"
+		local thirdFontName = "MiniCombatNotifier Third Test Face"
+
+		lsm:Register("font", secondFontName, "Fonts\\MiniCombatNotifierSecondTestFace.ttf")
+		lsm:Register("font", thirdFontName, "Fonts\\MiniCombatNotifierThirdTestFace.ttf")
+
+		fw.eq(WowMock.RunTimers(), 1, "two registrations in one frame coalesce into a single refresh")
+		fw.has_key(MenuChoices(fontDD), secondFontName, "the first of the pair lands after the one refresh")
+		fw.has_key(MenuChoices(fontDD), thirdFontName, "the second of the pair lands after the same refresh")
+
+		local overrideTargetName = "MiniCombatNotifier Override Target Face"
+		lsm:Register("font", overrideTargetName, "Fonts\\MiniCombatNotifierOverrideTargetFace.ttf")
+		WowMock.RunTimers()
+
+		lsm:SetGlobal("font", overrideTargetName)
+
+		local fourthFontName = "MiniCombatNotifier Fourth Test Face"
+		lsm:Register("font", fourthFontName, "Fonts\\MiniCombatNotifierFourthTestFace.ttf")
+
+		WowMock.RunTimers()
+
+		local overridden = MenuChoices(fontDD)
+		fw.has_key(overridden, overrideTargetName, "the overridden face keeps its own name once a global font is set")
+		fw.has_key(overridden, fourthFontName, "a face registered after the override still gets its own name")
+
+		lsm:SetGlobal("font", nil)
+
+		local refreshCount = 0
+		local originalMiniRefresh = fontDD.MiniRefresh
+
+		fontDD.MiniRefresh = function(...)
+			refreshCount = refreshCount + 1
+			return originalMiniRefresh(...)
+		end
+
+		lsm:Register("font", "MiniCombatNotifier Spy Face", "Fonts\\MiniCombatNotifierSpyFace.ttf")
+		WowMock.RunTimers()
+
+		fw.eq(refreshCount, 1, "the font dropdown is told to redraw once after a registration")
+
+		fontDD.MiniRefresh = originalMiniRefresh
 	end,
 })
