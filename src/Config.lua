@@ -2,7 +2,6 @@ local addonName, addon = ...
 
 local testModeActive = false
 local testModeBg  -- background texture shown in test mode
-local testModeBtn -- button ref so we can update its label
 
 -- Build panel
 
@@ -30,6 +29,14 @@ local function BuildPanel(panel)
 		Parent = panel,
 		Description = "Notifies you when entering and leaving combat.",
 		Width = panelW,
+		Test = {
+			OnClick = function()
+				testModeActive = not testModeActive
+				addon.SetTestMode(testModeActive)
+
+				if testModeBg then testModeBg:SetShown(testModeActive) end
+			end,
+		},
 		Reset = {
 			OnAccept = function()
 				db = mini:ResetSavedVars(addon.DbDefaults)
@@ -189,7 +196,7 @@ local function BuildPanel(panel)
 
 	-- Position
 	-- Row: hint text
-	-- Row: X: [editbox]    Y: [editbox]    [Test Mode button]
+	-- Row: X: [editbox]    Y: [editbox]
 
 	local divPos = mini:Divider({ Parent = panel, Text = "Position" })
 	divPos:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
@@ -198,7 +205,7 @@ local function BuildPanel(panel)
 
 	local hint = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
 	hint:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
-	hint:SetText("Enable test mode, then drag the text to reposition it.")
+	hint:SetText("Click Test, then drag the text to reposition it.")
 	hint:SetTextColor(0.7, 0.7, 0.7, 1)
 	Row(28)
 
@@ -222,27 +229,10 @@ local function BuildPanel(panel)
 	})
 	posYRes.EditBox:SetPoint("LEFT", yLbl, "RIGHT", 6, 0)
 
-	testModeBtn = mini:Button({
-		Parent = panel,
-		Text = "Enable Test Mode",
-		Width = 160,
-		Height = 24,
-		OnClick = function()
-			testModeActive = not testModeActive
-			addon.SetTestMode(testModeActive)
-			testModeBtn:SetText(testModeActive and "Disable Test Mode" or "Enable Test Mode")
-			if testModeBg then testModeBg:SetShown(testModeActive) end
-		end,
-	})
-	testModeBtn:SetPoint("LEFT", posYRes.EditBox, "RIGHT", hSpace, 0)
-
 	panel:HookScript("OnShow", function()
 		RefreshFontList()
 		if panel.MiniRefresh then panel:MiniRefresh() end
 		if testModeBg then testModeBg:SetShown(testModeActive) end
-		if testModeBtn then
-			testModeBtn:SetText(testModeActive and "Disable Test Mode" or "Enable Test Mode")
-		end
 	end)
 end
 

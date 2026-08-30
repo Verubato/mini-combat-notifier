@@ -43,19 +43,18 @@ local function FindButton(text)
 	return button
 end
 
----The Test Mode button sits after the X/Y boxes now, so a test follows its own anchor rather
----than reading the layout code back.
 ---@return boolean
-local function TestModeButtonFollowsCoordinates()
-	local button = FindButton("Enable Test Mode")
+local function TestButtonSitsLeftOfReset()
+	local test = FindButton("Test")
+	local reset = FindButton("Reset to Defaults")
 
-	if not button then
+	if not test or not reset then
 		return false
 	end
 
-	local _, relativeTo = button:GetPoint()
+	local point, relativeTo, relativePoint = test:GetPoint()
 
-	return relativeTo ~= nil and relativeTo:GetObjectType() == "EditBox"
+	return point == "RIGHT" and relativeTo == reset and relativePoint == "LEFT"
 end
 
 ---The client does nothing with a prompt in the mock, so a test stands in for it.
@@ -112,7 +111,7 @@ smoke.Run("MiniCombatNotifier", {
 	extra = function(context)
 		fw.eq(context.Addon.Framework.CustomStyling, true, "custom styling on")
 		fw.eq(context.Addon.Framework.CustomStylingOverrides.Button, false, "stock buttons")
-		fw.truthy(TestModeButtonFollowsCoordinates(), "test mode button anchored after the coordinate boxes")
+		fw.truthy(TestButtonSitsLeftOfReset(), "the test button sits left of the reset button")
 
 		fw.falsy(DividerIndex("COLORS"), "the colors divider was removed")
 
