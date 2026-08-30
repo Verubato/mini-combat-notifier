@@ -72,12 +72,14 @@ local function BuildPanel(panel)
 	leaveRes.EditBox:SetPoint("LEFT", leaveLbl, "RIGHT", 8, 0)
 	Row(44)
 
-	-- Colors
+	-- Font
 	-- Row: "Entering Combat:" [swatch]    "Leaving Combat:" [swatch]
+	-- Row: "Font:" [dropdown]    "Style:" [dropdown]
+	-- Row: [Font Size slider]
 
-	local divColor = mini:Divider({ Parent = panel, Text = "Colors" })
-	divColor:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
-	divColor:SetWidth(panelW)
+	local divFont = mini:Divider({ Parent = panel, Text = "Font" })
+	divFont:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
+	divFont:SetWidth(panelW)
 	Row(40)
 
 	-- The stored A is alpha (1 = opaque) - it is handed straight to SetTextColor - so it maps
@@ -116,15 +118,6 @@ local function BuildPanel(panel)
 	leaveColorLbl:SetPoint("TOPLEFT", panel, "TOPLEFT", xMid, y)
 	leaveSwatch:SetPoint("LEFT", leaveColorLbl, "RIGHT", 8, 0)
 	Row(44)
-
-	-- Font
-	-- Row: "Font:" [dropdown]    "Style:" [dropdown]
-	-- Row: [Font Size slider]
-
-	local divFont = mini:Divider({ Parent = panel, Text = "Font" })
-	divFont:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
-	divFont:SetWidth(panelW)
-	Row(40)
 
 	local fontValues = {}
 	local fontNames  = {}
