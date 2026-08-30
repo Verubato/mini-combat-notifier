@@ -54,7 +54,7 @@ end
 ---@param file string
 ---@param size number
 ---@param flags string
----@return table object
+---@return table? object
 function M:FileFontObject(file, size, flags)
 	local bySize = fontObjects[file]
 
@@ -84,11 +84,13 @@ function M:FileFontObject(file, size, flags)
 			-- Only an old client gets here, where the two-step is all there is.
 			object = CreateFont(name)
 
-			-- A file still loading leaves SetFont false, so a failed object isn't cached
-			-- and the next call gets to retry.
-			if object:SetFont(file, size, flags) then
-				byFlags[flags] = object
+			-- A fontstring handed an undefined object loses its face, so a refused file
+			-- yields nothing at all.
+			if not object:SetFont(file, size, flags) then
+				return nil
 			end
+
+			byFlags[flags] = object
 		end
 	end
 
