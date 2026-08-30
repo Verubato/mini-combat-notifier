@@ -58,6 +58,34 @@ local function TestModeButtonFollowsCoordinates()
 	return relativeTo ~= nil and relativeTo:GetObjectType() == "EditBox"
 end
 
+---The client does nothing with a prompt in the mock, so a test stands in for it.
+---@param open fun()
+---@return boolean
+local function AcceptConfirm(open)
+	local seen
+	local real = StaticPopup_Show
+
+	StaticPopup_Show = function(which, _, _, data)
+		seen = { Which = which, Data = data }
+	end
+
+	local ok, err = pcall(open)
+
+	StaticPopup_Show = real
+
+	if not ok then
+		error(err, 0)
+	end
+
+	if not seen then
+		return false
+	end
+
+	StaticPopupDialogs[seen.Which].OnAccept(nil, seen.Data)
+
+	return true
+end
+
 ---Clicks the panel's reset button and accepts the confirmation, the way a player would, then
 ---checks the setting it changed came back to its default.
 ---@param db table
@@ -70,22 +98,12 @@ local function ResetButtonAppliesDefaults(db)
 	end
 
 	local onClick = resetBtn:GetScript("OnClick")
-	onClick(resetBtn)
 
-	local confirmDlg
-
-	for _, frame in ipairs(WowMock.Frames) do
-		if frame.AcceptButton and frame.CancelButton then
-			confirmDlg = frame
-		end
-	end
-
-	if not confirmDlg or not confirmDlg:IsShown() then
+	if not AcceptConfirm(function()
+		onClick(resetBtn)
+	end) then
 		return false
 	end
-
-	local acceptClick = confirmDlg.AcceptButton:GetScript("OnClick")
-	acceptClick(confirmDlg.AcceptButton)
 
 	return db.EnteringCombatText ~= "changed"
 end
