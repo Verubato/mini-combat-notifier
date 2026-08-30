@@ -214,16 +214,19 @@ local function BuildPanel(panel)
 	hint:SetTextColor(0.7, 0.7, 0.7, 1)
 	Row(28)
 
-	testModeBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-	testModeBtn:SetSize(160, 24)
+	testModeBtn = mini:Button({
+		Parent = panel,
+		Text = "Enable Test Mode",
+		Width = 160,
+		Height = 24,
+		OnClick = function()
+			testModeActive = not testModeActive
+			addon.SetTestMode(testModeActive)
+			testModeBtn:SetText(testModeActive and "Disable Test Mode" or "Enable Test Mode")
+			if testModeBg then testModeBg:SetShown(testModeActive) end
+		end,
+	})
 	testModeBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
-	testModeBtn:SetText("Enable Test Mode")
-	testModeBtn:SetScript("OnClick", function()
-		testModeActive = not testModeActive
-		addon.SetTestMode(testModeActive)
-		testModeBtn:SetText(testModeActive and "Disable Test Mode" or "Enable Test Mode")
-		if testModeBg then testModeBg:SetShown(testModeActive) end
-	end)
 
 	local posXRes = mini:EditBox({
 		Parent = panel, Width = 60, Numeric = true, AllowNegatives = true, LabelText = "",
@@ -244,20 +247,23 @@ local function BuildPanel(panel)
 	posYRes.EditBox:SetPoint("LEFT", yLbl, "RIGHT", 6, 0)
 
 	-- Reset to defaults button (top-right corner)
-	local resetBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-	resetBtn:SetSize(120, 24)
+	local resetBtn = mini:Button({
+		Parent = panel,
+		Text = "Reset to Defaults",
+		Width = 120,
+		Height = 24,
+		OnClick = function()
+			StaticPopup_Show("MINICOMBATNOTIFIER_CONFIRM_RESET", "Reset all settings to default?", nil, {
+				OnYes = function()
+					db = mini:ResetSavedVars(addon.DbDefaults)
+					addon.Db = db
+					panel:MiniRefresh()
+					addon.RefreshDisplay()
+				end,
+			})
+		end,
+	})
 	resetBtn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -hSpace, -vSpace)
-	resetBtn:SetText("Reset to Defaults")
-	resetBtn:SetScript("OnClick", function()
-		StaticPopup_Show("MINICOMBATNOTIFIER_CONFIRM_RESET", "Reset all settings to default?", nil, {
-			OnYes = function()
-				db = mini:ResetSavedVars(addon.DbDefaults)
-				addon.Db = db
-				panel:MiniRefresh()
-				addon.RefreshDisplay()
-			end,
-		})
-	end)
 
 	panel:HookScript("OnShow", function()
 		RefreshFontList()
@@ -271,6 +277,9 @@ end
 
 function addon.InitConfig()
 	local mini = addon.Framework
+
+	-- A styled button clashes with the stock Blizzard art around it in the settings screen.
+	mini:SetCustomStyling(true, { Button = false })
 
 	local container = _G["MiniCombatNotifierContainer"]
 	if container then
