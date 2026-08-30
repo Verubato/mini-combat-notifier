@@ -3,6 +3,9 @@ local addonName, addon = ...
 local testModeActive = false
 local testModeBg  -- background texture shown in test mode
 
+-- The preview rows are menu rows, so their text matches the menu's own size.
+local PREVIEW_FONT_SIZE = 13
+
 -- The dropdown holds these tables, so they are refilled in place rather than replaced.
 local fontValues = {}
 local fontNames = {}
@@ -82,6 +85,29 @@ local function EnsureFontMediaSubscription()
 	-- Fonts keep arriving for as long as media addons keep loading, which is routinely after
 	-- this panel was built.
 	LSM.RegisterCallback(addon, "LibSharedMedia_Registered", QueueFontListsChanged)
+end
+
+---Previews the font each dropdown row names. Menu rows are pooled and reused across openings.
+---@param button table
+---@param file string
+local function DecorateFontRow(button, file)
+	local text = button.fontString
+
+	if not text then
+		return
+	end
+
+	if button.MiniCombatNotifierStockFont == nil then
+		button.MiniCombatNotifierStockFont = text:GetFontObject() or false
+	end
+
+	local preview = addon.Fonts:FileFontObject(file, PREVIEW_FONT_SIZE, "")
+
+	if preview then
+		text:SetFontObject(preview)
+	elseif button.MiniCombatNotifierStockFont then
+		text:SetFontObject(button.MiniCombatNotifierStockFont)
+	end
 end
 
 -- Build panel
@@ -223,6 +249,7 @@ local function BuildPanel(panel)
 		GetValue = function() return db.FontPath end,
 		SetValue = function(v) db.FontPath = v; addon.RefreshDisplay() end,
 		GetText  = function(v) return fontNames[v] or v end,
+		DecorateItem = DecorateFontRow,
 	})
 	fontDD:SetPoint("TOPLEFT", panel, "TOPLEFT", (fontModern and 0 or -16), y)
 

@@ -79,6 +79,52 @@ local function MenuChoices(dd)
 	return choices
 end
 
+---The shared mock's own menu description has no AddInitializer, so calling a decorator directly
+---would stay green even if it were never wired to the dropdown.
+---@param dd table
+---@return table<any, fun(button: table)>
+local function MenuInitializers(dd)
+	local initializers = {}
+	local description = {}
+
+	setmetatable(description, {
+		__index = function()
+			return function() end
+		end,
+	})
+
+	description.CreateRadio = function(_, _, _, _, value)
+		local node = {}
+
+		node.AddInitializer = function(_, initializer)
+			initializers[value] = initializer
+		end
+
+		return node
+	end
+
+	dd.__menuGenerator(dd, description)
+
+	return initializers
+end
+
+---A stand-in for a row's font string, tracking whichever font object it was last handed.
+---@param initial table?
+---@return table
+local function StubFontString(initial)
+	local stub = { object = initial }
+
+	function stub:GetFontObject()
+		return self.object
+	end
+
+	function stub:SetFontObject(object)
+		self.object = object
+	end
+
+	return stub
+end
+
 ---@return boolean
 local function TestButtonSitsLeftOfReset()
 	local test = FindButton("Test")
@@ -215,5 +261,60 @@ smoke.Run("MiniCombatNotifier", {
 		fw.eq(refreshCount, 1, "the font dropdown is told to redraw once after a registration")
 
 		fontDD.MiniRefresh = originalMiniRefresh
+
+		local _, fontInitializer = next(MenuInitializers(fontDD))
+		fw.not_nil(fontInitializer, "the font dropdown wires a row initializer")
+
+		local stockFont = {}
+		local button = { fontString = StubFontString(stockFont) }
+
+		fontInitializer(button)
+
+		local previewed = button.fontString:GetFontObject()
+		fw.truthy(previewed ~= nil and previewed ~= stockFont, "the row previews the font it names")
+
+		-- A plain CreateFont object has no __members, and an incomplete family has fewer than
+		-- five, so this one count proves both the family route and the full alphabet list.
+		fw.eq(previewed.__members and #previewed.__members or 0, 5, "the preview is a family declaring all five alphabets")
+
+		local capturedStock = button.MiniCombatNotifierStockFont
+		fw.eq(capturedStock, stockFont, "the row's original face is captured before the preview is applied")
+
+		fontInitializer(button)
+		fw.eq(button.MiniCombatNotifierStockFont, capturedStock, "a reopened row keeps the face it first captured")
+
+		local originalGetFontObjectForAlphabet = GameFontNormal.GetFontObjectForAlphabet
+
+		GameFontNormal.GetFontObjectForAlphabet = function(_, alphabet)
+			return { GetFont = function() return "Fonts\\" .. alphabet .. ".ttf" end }
+		end
+
+		local Fonts = context.Addon.Fonts
+		fw.not_nil(Fonts, "the addon exposes its Fonts module")
+
+		local customFile = "Fonts\\MiniCombatNotifierCustomFace.ttf"
+		local substituted = Fonts:FileFontObject(customFile, 18, "OUTLINE")
+		local ownAlphabetFile, otherAlphabetFile
+
+		for _, member in ipairs(substituted.__members) do
+			if member.alphabet == "roman" then
+				ownAlphabetFile = member.file
+			elseif member.alphabet == "korean" then
+				otherAlphabetFile = member.file
+			end
+		end
+
+		GameFontNormal.GetFontObjectForAlphabet = originalGetFontObjectForAlphabet
+
+		fw.eq(ownAlphabetFile, customFile, "the client's own alphabet keeps the requested face")
+		fw.eq(otherAlphabetFile, "Fonts\\korean.ttf", "another alphabet borrows the client's own file for it")
+
+		local firstFile = "Fonts\\FRIZQT__.TTF"
+		local first = Fonts:FileFontObject(firstFile, 18, "OUTLINE")
+		local second = Fonts:FileFontObject(firstFile, 18, "OUTLINE")
+		local third = Fonts:FileFontObject(firstFile, 18, "")
+
+		fw.truthy(first == second, "the same file, size and flags return the same cached object")
+		fw.truthy(first ~= third, "a different flags value returns a different object")
 	end,
 })
