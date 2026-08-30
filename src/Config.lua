@@ -201,7 +201,7 @@ local function BuildPanel(panel)
 
 	-- Position
 	-- Row: hint text
-	-- Row: [Test Mode button]    X: [editbox]    Y: [editbox]
+	-- Row: X: [editbox]    Y: [editbox]    [Test Mode button]
 
 	local divPos = mini:Divider({ Parent = panel, Text = "Position" })
 	divPos:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
@@ -213,6 +213,26 @@ local function BuildPanel(panel)
 	hint:SetText("Enable test mode, then drag the text to reposition it.")
 	hint:SetTextColor(0.7, 0.7, 0.7, 1)
 	Row(28)
+
+	local xLbl = Label("X:")
+	xLbl:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
+
+	local posXRes = mini:EditBox({
+		Parent = panel, Width = 60, Numeric = true, AllowNegatives = true, LabelText = "",
+		GetValue = function() return db.X end,
+		SetValue = function(v) db.X = mini:ClampInt(v, -2000, 2000, db.X); addon.RefreshDisplay() end,
+	})
+	posXRes.EditBox:SetPoint("LEFT", xLbl, "RIGHT", 6, 0)
+
+	local yLbl = Label("Y:")
+	yLbl:SetPoint("LEFT", posXRes.EditBox, "RIGHT", hSpace, 0)
+
+	local posYRes = mini:EditBox({
+		Parent = panel, Width = 60, Numeric = true, AllowNegatives = true, LabelText = "",
+		GetValue = function() return db.Y end,
+		SetValue = function(v) db.Y = mini:ClampInt(v, -2000, 2000, db.Y); addon.RefreshDisplay() end,
+	})
+	posYRes.EditBox:SetPoint("LEFT", yLbl, "RIGHT", 6, 0)
 
 	testModeBtn = mini:Button({
 		Parent = panel,
@@ -226,25 +246,7 @@ local function BuildPanel(panel)
 			if testModeBg then testModeBg:SetShown(testModeActive) end
 		end,
 	})
-	testModeBtn:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, y)
-
-	local posXRes = mini:EditBox({
-		Parent = panel, Width = 60, Numeric = true, AllowNegatives = true, LabelText = "",
-		GetValue = function() return db.X end,
-		SetValue = function(v) db.X = mini:ClampInt(v, -2000, 2000, db.X); addon.RefreshDisplay() end,
-	})
-	local xLbl = Label("X:")
-	xLbl:SetPoint("LEFT", testModeBtn, "RIGHT", hSpace, 0)
-	posXRes.EditBox:SetPoint("LEFT", xLbl, "RIGHT", 6, 0)
-
-	local posYRes = mini:EditBox({
-		Parent = panel, Width = 60, Numeric = true, AllowNegatives = true, LabelText = "",
-		GetValue = function() return db.Y end,
-		SetValue = function(v) db.Y = mini:ClampInt(v, -2000, 2000, db.Y); addon.RefreshDisplay() end,
-	})
-	local yLbl = Label("Y:")
-	yLbl:SetPoint("LEFT", posXRes.EditBox, "RIGHT", hSpace, 0)
-	posYRes.EditBox:SetPoint("LEFT", yLbl, "RIGHT", 6, 0)
+	testModeBtn:SetPoint("LEFT", posYRes.EditBox, "RIGHT", hSpace, 0)
 
 	-- Reset to defaults button (top-right corner)
 	local resetBtn = mini:Button({
