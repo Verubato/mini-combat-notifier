@@ -29,7 +29,27 @@ addon.DbDefaults = {
 }
 
 local function ApplyFont()
-	textFrame:SetFont(db.FontPath, db.FontSize, db.FontFlags)
+	local defaults = addon.DbDefaults
+	-- SetFont refuses a file the client has not loaded yet, so the face arrives as an object.
+	local object = addon.Fonts:FileFontObject(
+		db.FontPath or defaults.FontPath,
+		db.FontSize or defaults.FontSize,
+		db.FontFlags or defaults.FontFlags
+	)
+
+	if not object then
+		return
+	end
+
+	local message = textFrame:GetText()
+
+	textFrame:SetFontObject(object)
+
+	if message then
+		-- Attaching a new object doesn't repaint text already drawn.
+		textFrame:SetText("")
+		textFrame:SetText(message)
+	end
 end
 
 local function ApplyPosition()

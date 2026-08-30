@@ -54,27 +54,42 @@ local function FindFontDropdown()
 	end
 end
 
----A modern dropdown only exposes its choices through the generator it handed to SetupMenu, so a
+---A modern dropdown only exposes its rows through the generator it handed to SetupMenu, so a
 ---test replays that generator against a description that keeps the callbacks.
 ---@param dd table
----@return table<string, fun()>
-local function MenuChoices(dd)
-	local choices = {}
-	local description = {}
-
-	setmetatable(description, {
+---@param createRadio fun(root: table, text: string, isSelected: function, setSelected: fun(), value: any): table?
+local function ReplayMenu(dd, createRadio)
+	local description = setmetatable({ CreateRadio = createRadio }, {
 		__index = function()
 			return function() end
 		end,
 	})
 
-	description.CreateRadio = function(_, text, _, setSelected)
-		choices[text] = setSelected
-
-		return nil
-	end
-
 	dd.__menuGenerator(dd, description)
+end
+
+---@param dd table
+---@return table<string, fun()>
+local function MenuChoices(dd)
+	local choices = {}
+
+	ReplayMenu(dd, function(_, text, _, setSelected)
+		choices[text] = setSelected
+	end)
+
+	return choices
+end
+
+---The row a value selects. A row's label is the font's name while the display stores its file,
+---so a lookup by label never matches what is in the db.
+---@param dd table
+---@return table<any, fun()>
+local function MenuChoicesByValue(dd)
+	local choices = {}
+
+	ReplayMenu(dd, function(_, _, _, setSelected, value)
+		choices[value] = setSelected
+	end)
 
 	return choices
 end
@@ -85,15 +100,8 @@ end
 ---@return table<any, fun(button: table)>
 local function MenuInitializers(dd)
 	local initializers = {}
-	local description = {}
 
-	setmetatable(description, {
-		__index = function()
-			return function() end
-		end,
-	})
-
-	description.CreateRadio = function(_, _, _, _, value)
+	ReplayMenu(dd, function(_, _, _, _, value)
 		local node = {}
 
 		node.AddInitializer = function(_, initializer)
@@ -101,9 +109,7 @@ local function MenuInitializers(dd)
 		end
 
 		return node
-	end
-
-	dd.__menuGenerator(dd, description)
+	end)
 
 	return initializers
 end
@@ -187,6 +193,22 @@ local function ResetButtonAppliesDefaults(db)
 	end
 
 	return db.EnteringCombatText ~= "changed"
+end
+
+---The display's text, which the addon keeps to itself, found through the one container it names.
+---@return table?
+local function FindDisplayText()
+	local container = _G["MiniCombatNotifierContainer"]
+
+	if not container then
+		return nil
+	end
+
+	for _, region in ipairs({ container:GetRegions() }) do
+		if region:GetObjectType() == "FontString" then
+			return region
+		end
+	end
 end
 
 smoke.Run("MiniCombatNotifier", {
@@ -316,5 +338,50 @@ smoke.Run("MiniCombatNotifier", {
 
 		fw.truthy(first == second, "the same file, size and flags return the same cached object")
 		fw.truthy(first ~= third, "a different flags value returns a different object")
+
+		local displayText = FindDisplayText()
+
+		fw.not_nil(displayText, "the display's text exists")
+
+		local before = displayText:GetFontObject()
+
+		fw.not_nil(before, "the display took a font object rather than a raw SetFont")
+
+		local db = _G.MiniCombatNotifierDB
+		local byValue = MenuChoicesByValue(fontDD)
+
+		fw.has_key(byValue, db.FontPath, "the face in use is one of the rows, so skipping it has work to do")
+
+		local pick
+
+		for file, choose in pairs(byValue) do
+			if file ~= db.FontPath then
+				pick = choose
+				break
+			end
+		end
+
+		fw.not_nil(pick, "the dropdown lists a face other than the one in use")
+
+		local message = displayText:GetText()
+
+		fw.truthy(message ~= "", "the display is showing a message to repaint")
+
+		local repaints = {}
+		local SetText = displayText.SetText
+
+		displayText.SetText = function(text, value)
+			repaints[#repaints + 1] = value
+
+			return SetText(text, value)
+		end
+
+		pick()
+
+		displayText.SetText = SetText
+
+		fw.truthy(displayText:GetFontObject() ~= before, "picking another face hands the display a different object")
+		fw.eq(repaints[1], "", "the message is cleared so the new face redraws it")
+		fw.eq(repaints[2], message, "and then put back")
 	end,
 })
