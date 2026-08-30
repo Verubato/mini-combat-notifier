@@ -28,17 +28,26 @@ local function FirstColorSwatchIndex()
 	end
 end
 
+---The last Button with this text, since a toggled label can leave an earlier one stale.
+---@param text string
+---@return table?
+local function FindButton(text)
+	local button
+
+	for _, frame in ipairs(WowMock.Frames) do
+		if frame:GetObjectType() == "Button" and frame.GetText and frame:GetText() == text then
+			button = frame
+		end
+	end
+
+	return button
+end
+
 ---The Test Mode button sits after the X/Y boxes now, so a test follows its own anchor rather
 ---than reading the layout code back.
 ---@return boolean
 local function TestModeButtonFollowsCoordinates()
-	local button
-
-	for _, frame in ipairs(WowMock.Frames) do
-		if frame:GetObjectType() == "Button" and frame.GetText and frame:GetText() == "Enable Test Mode" then
-			button = frame
-		end
-	end
+	local button = FindButton("Enable Test Mode")
 
 	if not button then
 		return false
@@ -47,6 +56,38 @@ local function TestModeButtonFollowsCoordinates()
 	local _, relativeTo = button:GetPoint()
 
 	return relativeTo ~= nil and relativeTo:GetObjectType() == "EditBox"
+end
+
+---Clicks the panel's reset button and accepts the confirmation, the way a player would, then
+---checks the setting it changed came back to its default.
+---@param db table
+---@return boolean
+local function ResetButtonAppliesDefaults(db)
+	local resetBtn = FindButton("Reset to Defaults")
+
+	if not resetBtn then
+		return false
+	end
+
+	local onClick = resetBtn:GetScript("OnClick")
+	onClick(resetBtn)
+
+	local confirmDlg
+
+	for _, frame in ipairs(WowMock.Frames) do
+		if frame.AcceptButton and frame.CancelButton then
+			confirmDlg = frame
+		end
+	end
+
+	if not confirmDlg or not confirmDlg:IsShown() then
+		return false
+	end
+
+	local acceptClick = confirmDlg.AcceptButton:GetScript("OnClick")
+	acceptClick(confirmDlg.AcceptButton)
+
+	return db.EnteringCombatText ~= "changed"
 end
 
 smoke.Run("MiniCombatNotifier", {
@@ -61,5 +102,8 @@ smoke.Run("MiniCombatNotifier", {
 		local colorSwatch = FirstColorSwatchIndex()
 
 		fw.truthy(fontDivider and colorSwatch and colorSwatch > fontDivider, "the colour controls moved into the font section")
+
+		context.Addon.Db.EnteringCombatText = "changed"
+		fw.truthy(ResetButtonAppliesDefaults(context.Addon.Db), "the framework's reset button restores defaults")
 	end,
 })

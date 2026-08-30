@@ -4,18 +4,6 @@ local testModeActive = false
 local testModeBg  -- background texture shown in test mode
 local testModeBtn -- button ref so we can update its label
 
-StaticPopupDialogs["MINICOMBATNOTIFIER_CONFIRM_RESET"] = {
-	text = "%s",
-	button1 = YES,
-	button2 = NO,
-	OnAccept = function(_, data)
-		if data and data.OnYes then data.OnYes() end
-	end,
-	timeout = 0,
-	whileDead = true,
-	hideOnEscape = true,
-}
-
 -- Build panel
 
 local function BuildPanel(panel)
@@ -31,7 +19,7 @@ local function BuildPanel(panel)
 	local function Row(amount) y = y - amount; return y end
 
 	local function Label(text)
-		local lbl = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+		local lbl = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
 		lbl:SetText(text)
 		return lbl
 	end
@@ -42,6 +30,13 @@ local function BuildPanel(panel)
 		Parent = panel,
 		Description = "Notifies you when entering and leaving combat.",
 		Width = panelW,
+		Reset = {
+			OnAccept = function()
+				db = mini:ResetSavedVars(addon.DbDefaults)
+				addon.Db = db
+				addon.RefreshDisplay()
+			end,
+		},
 	})
 	Row(52)
 
@@ -240,25 +235,6 @@ local function BuildPanel(panel)
 		end,
 	})
 	testModeBtn:SetPoint("LEFT", posYRes.EditBox, "RIGHT", hSpace, 0)
-
-	-- Reset to defaults button (top-right corner)
-	local resetBtn = mini:Button({
-		Parent = panel,
-		Text = "Reset to Defaults",
-		Width = 120,
-		Height = 24,
-		OnClick = function()
-			StaticPopup_Show("MINICOMBATNOTIFIER_CONFIRM_RESET", "Reset all settings to default?", nil, {
-				OnYes = function()
-					db = mini:ResetSavedVars(addon.DbDefaults)
-					addon.Db = db
-					panel:MiniRefresh()
-					addon.RefreshDisplay()
-				end,
-			})
-		end,
-	})
-	resetBtn:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -hSpace, -vSpace)
 
 	panel:HookScript("OnShow", function()
 		RefreshFontList()
