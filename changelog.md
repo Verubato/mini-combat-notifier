@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.7
+
+- UI improvements.
+- Fixed the combat text ignoring the selected font.
+- Added font previews to the font dropdown.
+
 ## 1.2.6
 
 Reduced the work the shared framework code does on paths the addons use heavily.

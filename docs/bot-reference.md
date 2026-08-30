@@ -35,7 +35,8 @@ Blizzard's scrolling combat text and lose its combat notifications.
 
 ## Settings
 
-Single options panel, grouped under four dividers, plus a reset button.
+Single options panel, grouped under three dividers. The panel header carries a
+**Test** button and, top right, a **Reset to Defaults** button.
 
 ### Notification Text
 
@@ -44,18 +45,13 @@ Single options panel, grouped under four dividers, plus a reset button.
 | Entering Combat: | edit box | "<Entering Combat>" |
 | Leaving Combat: | edit box | "<Leaving Combat>" |
 
-### Colors
-
-| Setting | Type | Default |
-| --- | --- | --- |
-| Entering Combat: | color swatch | red (1, 0.1, 0.1, 1) |
-| Leaving Combat: | color swatch | green (0, 1, 0, 1) |
-
 ### Font
 
 | Setting | Type | Default | Range / options |
 | --- | --- | --- | --- |
-| Font: | dropdown | Friz Quadrata | LibSharedMedia fonts; falls back to 5 built-ins (Friz Quadrata, Arial Narrow, Morpheus, Skurri, 2002) |
+| Entering Combat: | color swatch | red (1, 0.1, 0.1, 1) | |
+| Leaving Combat: | color swatch | green (0, 1, 0, 1) | |
+| Font: | dropdown | Friz Quadrata | LibSharedMedia fonts; falls back to 5 built-ins (Friz Quadrata, Arial Narrow, Morpheus, Skurri, 2002); each row previews in its own font |
 | Style: | dropdown | Outline | Outline, Thick Outline, Monochrome, Outline + Mono, None |
 | Font Size | slider | 16 | 8-48 |
 
@@ -63,16 +59,16 @@ Single options panel, grouped under four dividers, plus a reset button.
 
 | Setting | Type | Default | Range |
 | --- | --- | --- | --- |
-| Enable Test Mode | button | off | Toggles test mode; button label switches to "Disable Test Mode". |
 | X: | numeric edit box | 0 | -2000 to 2000 |
 | Y: | numeric edit box | 0 | -2000 to 2000 |
 
-Panel hint: "Enable test mode, then drag the text to reposition it."
+Panel hint: "Click Test, then drag the text to reposition it."
 
-### Reset
+### Test and Reset
 
-"Reset to Defaults" button (top right of the panel) resets every setting after a
-Yes/No confirmation dialog.
+The header's **Test** button toggles test mode (see Features above). Its
+**Reset to Defaults** button resets every setting after a Yes/No confirmation
+dialog.
 
 ## Version-gated behavior
 
